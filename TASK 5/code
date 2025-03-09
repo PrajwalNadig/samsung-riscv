@@ -1,0 +1,66 @@
+#include <ch32v00x.h>
+#include <debug.h>
+
+int xor(int bit1, int bit2) {
+    return bit1 ^ bit2;  // Perform XOR operation
+}
+
+// GPIO Configuration Function
+void GPIO_Config(void) {
+    GPIO_InitTypeDef GPIO_InitStructure = {0}; 
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD, ENABLE); // Enable clock for Port D
+
+    // Configure input pins (Binary Input: B2, B1, B0)
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6; // Input Pins
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz; 
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+    // Configure output pins (Gray Output: G2, G1, G0)
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_3; 
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
+}
+
+// Main Function
+int main(void) {
+    uint8_t b0, b1, b2, g0, g1, g2 = 0;
+
+   
+    SystemCoreClockUpdate(); // Update system clock
+    Delay_Init(); // Initialize delay functions
+    GPIO_Config(); // Call GPIO configuration function
+
+    while (1) {
+        // Read Binary Input (B2, B1, B0)
+        b2 = GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_4);
+        b1 = GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_5);
+        b0 = GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_6);
+
+        // Convert Binary to Gray Code
+        g2 = b2;             // G2 = B2
+        g1 = xor(b2, b1);    // G1 = B2 XOR B1
+        g0 = xor(b1, b0);    // G0 = B1 XOR B0
+
+        // Output Gray Code to GPIO LEDs
+        if (g0 == 0) {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_0, RESET);
+        } else {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_0, SET);
+        }
+
+        if (g1 == 0) {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_2, RESET);
+        } else {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_2, SET);
+        }
+
+        if (g2 == 0) {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_3, RESET);
+        } else {
+            GPIO_WriteBit(GPIOD, GPIO_Pin_3, SET);
+        }
+
+        Delay_Ms(100); // Small delay to avoid glitches
+    }
+}
